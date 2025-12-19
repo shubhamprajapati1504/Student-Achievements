@@ -1,0 +1,264 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  HOD
+  CLASS_ADVISOR
+  STUDENT
+}
+
+enum ProgramType {
+  UG
+  PG
+}
+
+enum AchievementStatus {
+  SUBMITTED
+  VERIFIED
+  REJECTED
+}
+
+enum AchievementCategory {
+  TECHNICAL_COMPETITIONS
+  HACKATHONS
+  INTERNSHIPS
+  CERTIFICATIONS
+  RESEARCH_PUBLICATIONS
+  SPORTS_CULTURAL
+}
+
+// Department Model
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique // e.g., "COMP", "EXTC", "CSE"
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  programs    Program[]
+  users       User[]
+  academicStructures AcademicStructure[]
+  classAdvisors User[] @relation("ClassAdvisorDepartment")
+}
+
+// Program Model (UG/PG)
+model Program {
+  id          String      @id @default(cuid())
+  name        String      // e.g., "Undergraduate", "Postgraduate"
+  type        ProgramType
+  code        String      @unique // e.g., "UG", "PG"
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  academicStructures AcademicStructure[]
+  students          User[]
+  classAdvisors     User[] @relation("ClassAdvisorProgram")
+}
+
+// Academic Structure (FE/SE/TE/BE for UG, Year/Semester for PG)
+model AcademicStructure {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "FE", "SE", "TE", "BE", "Year 1", "Semester 1"
+  code        String   // e.g., "FE", "SE", "TE", "BE"
+  level       Int      // 1, 2, 3, 4 for ordering
+  isSemester  Boolean  @default(false) // true for semester-based PG programs
+  semester    Int?     // 1, 2, 3, 4... if isSemester is true
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  divisions Division[]
+  students  User[]
+  classAdvisors User[] @relation("ClassAdvisorAcademicStructure")
+
+  @@unique([departmentId, programId, code])
+}
+
+// Division Model (A, B, C, D, etc.)
+model Division {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "A", "B", "C", "D"
+  code        String   // e.g., "A", "B", "C", "D"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  academicStructureId String
+  academicStructure   AcademicStructure @relation(fields: [academicStructureId], references: [id], onDelete: Cascade)
+
+  batches Batch[]
+  students User[]
+  classAdvisors User[] @relation("ClassAdvisorDivision")
+
+  @@unique([academicStructureId, code])
+}
+
+// Batch Model
+model Batch {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "1", "2", "3", "4"
+  number      Int      // Numeric representation
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  divisionId String
+  division   Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+
+  students User[]
+  classAdvisors User[] @relation("ClassAdvisorBatch")
+
+  @@unique([divisionId, number])
+}
+
+// User Model (Students, Class Advisors, HOD, Admin)
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String   // Hashed password
+  name        String
+  role        UserRole
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Student-specific fields
+  studentId   String?  @unique // Roll number or student ID
+  phone       String?
+  
+  // Relations for Students
+  departmentId        String?
+  department          Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  
+  programId           String?
+  program             Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  
+  academicStructureId String?
+  academicStructure   AcademicStructure? @relation(fields: [academicStructureId], references: [id], onDelete: SetNull)
+  
+  divisionId          String?
+  division            Division? @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  
+  batchId             String?
+  batch               Batch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  // Class Advisor/HOD assignments
+  assignedDepartmentId String?
+  assignedDepartment   Department? @relation("ClassAdvisorDepartment", fields: [assignedDepartmentId], references: [id], onDelete: SetNull)
+  
+  assignedProgramId    String?
+  assignedProgram      Program? @relation("ClassAdvisorProgram", fields: [assignedProgramId], references: [id], onDelete: SetNull)
+  
+  assignedAcademicStructureId String?
+  assignedAcademicStructure   AcademicStructure? @relation("ClassAdvisorAcademicStructure", fields: [assignedAcademicStructureId], references: [id], onDelete: SetNull)
+  
+  assignedDivisionId  String?
+  assignedDivision    Division? @relation("ClassAdvisorDivision", fields: [assignedDivisionId], references: [id], onDelete: SetNull)
+  
+  assignedBatchId     String?
+  assignedBatch       Batch? @relation("ClassAdvisorBatch", fields: [assignedBatchId], references: [id], onDelete: SetNull)
+
+  achievements Achievement[]
+  accounts     Account[]
+  sessions     Session[]
+}
+
+// NextAuth Account Model
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// NextAuth Session Model
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NextAuth VerificationToken Model
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Achievement Model
+model Achievement {
+  id          String             @id @default(cuid())
+  title       String
+  description String             @db.Text
+  category    AchievementCategory
+  status      AchievementStatus  @default(SUBMITTED)
+  eventDate   DateTime
+  academicYear String            // e.g., "2023-24"
+  semester    String?            // e.g., "Semester 1", "Semester 2"
+  
+  // File paths (stored locally)
+  certificatePath String?        // Path to certificate PDF/JPG
+  photoPath       String?        // Path to individual/group photo
+  
+  isGroupAchievement Boolean @default(false)
+  groupMembers       String? @db.Text // JSON array of member names/IDs
+  
+  verifiedBy   String?
+  verifiedAt   DateTime?
+  remarks      String? @db.Text
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studentId    String
+  student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([category])
+  @@index([status])
+  @@index([academicYear])
+}
+
+// Academic Year Model (for tracking academic years)
+model AcademicYear {
+  id          String   @id @default(cuid())
+  year        String   @unique // e.g., "2023-24"
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
