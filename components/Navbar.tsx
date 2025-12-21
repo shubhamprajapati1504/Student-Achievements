@@ -16,6 +16,7 @@ export default function Navbar() {
           { href: "/admin", label: "Admin Dashboard" },
           { href: "/admin/departments", label: "Departments" },
           { href: "/admin/programs", label: "Programs" },
+          { href: "/admin/academic-structures", label: "Academic-Structure" },
           { href: "/admin/users", label: "Users" },
         ]
       case UserRole.HOD:
