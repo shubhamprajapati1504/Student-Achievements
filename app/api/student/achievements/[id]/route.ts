@@ -17,10 +17,10 @@ const achievementUpdateSchema = z.object({
   groupMembers: z.string().optional(),
 })
 
-// GET single achievement
+/* ───────────────────────── GET ───────────────────────── */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id?: string }> }
 ) {
   try {
     const session = await auth()
@@ -28,9 +28,15 @@ export async function GET(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-
+    const { id } = await params
+    if (!id) {
+      return NextResponse.json(
+        { error: "Achievement ID is missing" },
+        { status: 400 }
+      )
+    }
     const achievement = await prisma.achievement.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         student: {
           select: {
@@ -55,8 +61,11 @@ export async function GET(
       )
     }
 
-    // Check access: Student can only view their own, others can view if they have permission
-    if (session.user.role === UserRole.STUDENT && achievement.studentId !== session.user.id) {
+    // Students can view only their own achievements
+    if (
+      session.user.role === UserRole.STUDENT &&
+      achievement.studentId !== session.user.id
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -70,10 +79,10 @@ export async function GET(
   }
 }
 
-// PUT update achievement
+/* ───────────────────────── PUT ───────────────────────── */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id?: string }> }
 ) {
   try {
     const session = await auth()
@@ -82,8 +91,16 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { id } = await params
+    if (!id) {
+      return NextResponse.json(
+        { error: "Achievement ID is missing" },
+        { status: 400 }
+      )
+    }
+
     const achievement = await prisma.achievement.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!achievement) {
@@ -121,7 +138,7 @@ export async function PUT(
     if (data.groupMembers !== undefined) updateData.groupMembers = data.groupMembers
 
     const updatedAchievement = await prisma.achievement.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     })
 
@@ -142,10 +159,10 @@ export async function PUT(
   }
 }
 
-// DELETE achievement
+/* ───────────────────────── DELETE ───────────────────────── */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id?: string }> }
 ) {
   try {
     const session = await auth()
@@ -154,8 +171,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { id } = await params
+    if (!id) {
+      return NextResponse.json(
+        { error: "Achievement ID is missing" },
+        { status: 400 }
+      )
+    }
+
     const achievement = await prisma.achievement.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!achievement) {
@@ -169,7 +194,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Can only delete if status is SUBMITTED
     if (achievement.status !== "SUBMITTED") {
       return NextResponse.json(
         { error: "Cannot delete verified or rejected achievements" },
@@ -178,7 +202,7 @@ export async function DELETE(
     }
 
     await prisma.achievement.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ message: "Achievement deleted successfully" })
