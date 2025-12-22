@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth-utils"
 import { UserRole } from "@prisma/client"
@@ -15,30 +17,22 @@ export default async function HODDashboard() {
   const departmentId = session.user.assignedDepartmentId || session.user.departmentId
 
   const stats = {
-    total: await prisma.achievement.count({
-      where: {
-        student: {
-          departmentId: departmentId || undefined,
-        },
-      },
-    }),
-    verified: await prisma.achievement.count({
-      where: {
-        student: {
-          departmentId: departmentId || undefined,
-        },
-        status: "VERIFIED",
-      },
-    }),
-    pending: await prisma.achievement.count({
-      where: {
-        student: {
-          departmentId: departmentId || undefined,
-        },
-        status: "SUBMITTED",
-      },
-    }),
-  }
+  total: await prisma.achievement.count(),
+
+  verified: await prisma.achievement.count({
+    where: {
+      status: "VERIFIED",
+    },
+  }),
+
+  pending: await prisma.achievement.count({
+    where: {
+      status: "SUBMITTED",
+    },
+  }),
+}
+
+
 
   return (
     <div>
