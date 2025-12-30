@@ -21,23 +21,26 @@ export const AuthProvider = ({ children }) => {
     setLoading(false)
   }, [])
 
-  const login = async (email, password) => {
-    setLoading(true)
-    try {
-      const result = await authAPI.login(email, password)
-      if (!result.success) {
-        throw new Error(result.error || "Invalid credentials")
-      }
-      const user = result.data.user
-      setUser(user)
-      localStorage.setItem("user", JSON.stringify(user))
-      return user
-    } catch (error) {
-      throw new Error(error.error || error.message || "Login failed")
-    } finally {
-      setLoading(false)
+const login = async (email, password) => {
+  setLoading(true)
+  try {
+    const result = await authAPI.login(email, password)
+    if (!result.success) {
+      throw new Error(result.error || "Invalid credentials")
     }
+
+    const { user, token } = result.data
+
+    setUser(user)
+    localStorage.setItem("user", JSON.stringify(user))
+    localStorage.setItem("token", token) // ✅ ADD THIS
+
+    return user
+  } finally {
+    setLoading(false)
   }
+}
+
 
   const logout = () => {
     authAPI.logout()

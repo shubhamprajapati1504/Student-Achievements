@@ -67,15 +67,18 @@ exports.login = asyncHandler(async (req, res) => {
     })
   }
 
-  // Check for user
-  const user = await User.findOne({ email }).select("+password").populate("department program year division batch assignedDivisions")
-console.log(user)
-  if (!user || !(await user.comparePassword(password))) {
-    return res.status(401).json({
-      success: false,
-      error: "Invalid credentials",
-    })
-  }
+const user = await User.findOne({ email }).select("+password")
+
+if (!user || !(await user.comparePassword(password))) {
+  return res.status(401).json({
+    success: false,
+    error: "Invalid credentials",
+  })
+}
+
+// populate AFTER password check
+await user.populate("department program year division batch assignedDivisions")
+
 
   if (!user.isActive) {
     return res.status(401).json({

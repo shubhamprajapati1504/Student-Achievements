@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react"
 import { useAuth } from "../context/AuthContext"
 import { achievementAPI, categoryAPI } from "../services/api"
@@ -7,6 +5,8 @@ import AchievementFormModal from "../components/student/AchievementForm"
 import FilteredAchievements from "../components/student/FilteredAchievements"
 import AchievementStats from "../components/student/AchievementStats"
 import AdvancedPagination from "../components/AdvancedPagination"
+import ProfileUpdateForm from "../components/student/ProfileUpdateForm"
+import PasswordChangeForm from "../components/student/PasswordChangeForm"
 
 export default function StudentDashboard() {
   const { user } = useAuth()
@@ -75,6 +75,7 @@ export default function StudentDashboard() {
   const tabs = [
     { id: "list", label: "My Achievements", icon: "🏆" },
     { id: "add", label: "Add Achievement", icon: "➕" },
+    { id: "profile", label: "Profile", icon: "👤" },
   ]
 
   return (
@@ -143,6 +144,13 @@ export default function StudentDashboard() {
             achievement={editingAchievement}
             onCancel={handleCancelEdit}
           />
+        )}
+
+        {activeTab === "profile" && (
+          <>
+            <ProfileUpdateForm />
+            <PasswordChangeForm />
+          </>
         )}
       </div>
     </div>
